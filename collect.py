@@ -8,6 +8,12 @@ HEADERS = {
     "User-Agent": "medieval-poetess-collector/1.0 (contact@example.com)"
 }
 
+CATEGORIES = [
+    "Medieval_women_poets",
+    "Women_writers_(medieval)"
+]
+
+
 def get_category_members(category):
     members = []
     params = {
@@ -46,18 +52,29 @@ def get_page_extract(pageid):
 
 def main():
     print("Récupération des membres de la catégorie...")
-    members = get_category_members("Medieval_women_writers")
-    
-    results = []
+    members = []
+    for cat in CATEGORIES:
+        print(f"  → Catégorie : {cat}")
+        members += get_category_members(cat)
+
+    # Dédoublonner par pageid
+    seen = set()
+    unique = []
     for m in members:
+        if m["pageid"] not in seen:
+            seen.add(m["pageid"])
+            unique.append(m)
+
+    results = []
+    for m in unique:
         print(f"  → {m['title']}")
         data = get_page_extract(m["pageid"])
         results.append(data)
-        time.sleep(0.5)  # respecter les limites Wikipedia
+        time.sleep(0.5)
 
     df = pd.DataFrame(results, columns=["author", "original_text", "date", "source_name", "source_link"])
-    df.to_csv("medieval_poetess.csv", index=False)
-    print(f"\n{len(results)} entrées sauvegardées dans medieval_poetess.csv")
+    df.to_csv("/app/output/medieval_poetess.csv", index=False)
+    print(f"\n{len(results)} entrées sauvegardées.")
 
 if __name__ == "__main__":
     main()
