@@ -4,6 +4,10 @@ import time
 
 BASE_URL = "https://en.wikipedia.org/w/api.php"
 
+HEADERS = {
+    "User-Agent": "medieval-poetess-collector/1.0 (contact@example.com)"
+}
+
 def get_category_members(category):
     members = []
     params = {
@@ -14,7 +18,7 @@ def get_category_members(category):
         "format": "json"
     }
     while True:
-        r = requests.get(BASE_URL, params=params).json()
+        r = requests.get(BASE_URL, params=params, headers=HEADERS).json()
         members += r["query"]["categorymembers"]
         if "continue" not in r:
             break
@@ -30,14 +34,14 @@ def get_page_extract(pageid):
         "inprop": "url",
         "format": "json"
     }
-    r = requests.get(BASE_URL, params=params).json()
+    r = requests.get(BASE_URL, params=params, headers=HEADERS).json()
     page = r["query"]["pages"][str(pageid)]
     return {
         "author": page.get("title", ""),
         "original_text": page.get("extract", ""),
         "source_name": "Wikipedia",
         "source_link": page.get("fullurl", ""),
-        "date": ""  # à enrichir via Wikidata si besoin
+        "date": ""
     }
 
 def main():
