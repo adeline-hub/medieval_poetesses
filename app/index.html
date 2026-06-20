@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block nav_collect %}active{% endblock %}
+{% block content %}
+<div class="flex-between" style="margin-bottom: 28px;">
+  <div>
+    <h1 class="page-title">Collecte terrain</h1>
+    <p class="page-sub">Validez et complétez chaque entrée scrapée depuis Wikipedia.</p>
+  </div>
+  <a href="/add" class="btn btn-primary">+ Ajouter manuellement</a>
+</div>
+
+<div class="card" style="margin-bottom: 28px;">
+  <div class="flex-between">
+    <div>
+      <div style="font-size: 13px; color: var(--muted);">Progression globale</div>
+      <div style="font-size: 22px; font-family: 'IM Fell English', serif; margin-top: 2px;">
+        {{ validated }} / {{ total }} validées &nbsp;·&nbsp; <span style="color: var(--validated);">{{ pct }}%</span>
+      </div>
+    </div>
+    <a href="/export" class="btn btn-secondary">↓ Exporter CSV</a>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" style="width: {{ pct }}%;"></div>
+  </div>
+</div>
+
+{% if entries %}
+<div style="display: flex; flex-direction: column; gap: 10px;">
+  {% for e in entries %}
+  <a href="/entry/{{ e.index }}" style="text-decoration: none; color: inherit;">
+    <div class="card" style="padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: border-color 0.15s;"
+         onmouseover="this.style.borderColor='var(--rust)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="flex: 1;">
+        <div style="font-family: 'IM Fell English', serif; font-size: 16px; margin-bottom: 2px;">
+          {{ e.author or '(sans nom)' }}
+        </div>
+        <div style="color: var(--muted); font-size: 12px;">
+          {% if e.date %}{{ e.date }} · {% endif %}{{ e.source_name or 'Wikipedia' }}
+        </div>
+      </div>
+      <div>
+        {% if e.validated %}
+          <span class="tag-validated">✓ Validée</span>
+        {% else %}
+          <span class="tag-pending">À valider</span>
+        {% endif %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 48px; color: var(--muted);">
+  <div style="font-size: 32px; margin-bottom: 12px;">📜</div>
+  <div style="font-family: 'IM Fell English', serif; font-size: 18px; margin-bottom: 8px;">Aucune entrée pour l'instant</div>
+  <div style="font-size: 13px; margin-bottom: 20px;">Lancez le scraper ou ajoutez une entrée manuellement.</div>
+  <a href="/add" class="btn btn-primary">+ Ajouter une entrée</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block nav_collect %}active{% endblock %}
+{% block content %}
+<div class="flex-between" style="margin-bottom: 24px;">
+  <div>
+    <a href="/" style="color: var(--muted); text-decoration: none; font-size: 13px;">← Retour à la liste</a>
+    <h1 class="page-title" style="margin-top: 6px;">{{ entry.author or '(sans nom)' }}</h1>
+    <p class="page-sub">Entrée {{ idx + 1 }} sur {{ total }}</p>
+  </div>
+  <div>
+    {% if entry.validated %}
+      <span class="tag-validated">✓ Validée</span>
+    {% else %}
+      <span class="tag-pending">À valider</span>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post" action="/entry/{{ idx }}/save">
+  <div class="card">
+    <div class="form-group">
+      <label>Auteure</label>
+      <input type="text" name="author" value="{{ entry.author or '' }}" placeholder="Nom de l'auteure">
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="text" name="date" value="{{ entry.date or '' }}" placeholder="ex: XIIe siècle, 1150–1215">
+      </div>
+      <div class="form-group">
+        <label>Source</label>
+        <input type="text" name="source_name" value="{{ entry.source_name or '' }}" placeholder="ex: Wikipedia">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Lien source</label>
+      <input type="text" name="source_link" value="{{ entry.source_link or '' }}" placeholder="https://...">
+    </div>
+    <hr class="divider">
+    <div class="form-group">
+      <label>Texte original / extrait biographique</label>
+      <textarea name="original_text">{{ entry.original_text or '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="flex" style="justify-content: space-between; margin-top: 8px;">
+    <div class="flex">
+      {% if idx > 0 %}
+      <a href="/entry/{{ idx - 1 }}" class="btn btn-secondary">← Précédente</a>
+      {% endif %}
+      {% if idx < total - 1 %}
+      <a href="/entry/{{ idx + 1 }}" class="btn btn-secondary">Suivante →</a>
+      {% endif %}
+    </div>
+    <div class="flex">
+      <button type="submit" class="btn btn-secondary">Sauvegarder</button>
+      <button type="submit" name="validate" value="1" class="btn btn-success">✓ Valider & continuer</button>
+    </div>
+  </div>
+</form>
+
+{% if entry.source_link %}
+<div class="card" style="margin-top: 24px;">
+  <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Source Wikipedia</div>
+  <a href="{{ entry.source_link }}" target="_blank" style="color: var(--rust); font-size: 13px;">
+    ↗ Ouvrir la page Wikipedia
+  </a>
+</div>
+{% endif %}
+{% endblock %}

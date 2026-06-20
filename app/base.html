@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medieval Poetess — Collecte</title>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1410;
+      --parchment: #f5f0e8;
+      --parchment-dark: #ede5d0;
+      --rust: #8b3a2a;
+      --rust-light: #c4533f;
+      --gold: #b8860b;
+      --muted: #6b5e4e;
+      --border: #c9b99a;
+      --validated: #2d5a3d;
+      --validated-bg: #eaf3ec;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--parchment);
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--ink);
+      color: var(--parchment);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      border-bottom: 3px solid var(--rust);
+    }
+    .logo {
+      font-family: 'IM Fell English', serif;
+      font-size: 20px;
+      letter-spacing: 0.02em;
+      color: var(--parchment);
+      text-decoration: none;
+    }
+    .logo span { color: var(--gold); }
+    nav a {
+      color: var(--parchment);
+      text-decoration: none;
+      margin-left: 24px;
+      font-size: 13px;
+      opacity: 0.75;
+      transition: opacity 0.15s;
+    }
+    nav a:hover { opacity: 1; }
+    nav a.active { opacity: 1; border-bottom: 2px solid var(--rust-light); padding-bottom: 2px; }
+    .container { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+    .page-title {
+      font-family: 'IM Fell English', serif;
+      font-size: 28px;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .page-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: var(--rust); color: white; }
+    .btn-primary:hover { background: var(--rust-light); }
+    .btn-secondary { background: var(--parchment-dark); color: var(--ink); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-success { background: var(--validated); color: white; }
+    .btn-success:hover { background: #3a7a50; }
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .progress-bar-wrap {
+      background: var(--parchment-dark);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      margin: 10px 0 4px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--validated);
+      border-radius: 99px;
+      transition: width 0.4s;
+    }
+    .tag-validated {
+      display: inline-block;
+      background: var(--validated-bg);
+      color: var(--validated);
+      border: 1px solid #b3d9bc;
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .tag-pending {
+      display: inline-block;
+      background: #fdf6e3;
+      color: var(--gold);
+      border: 1px solid #e0c97a;
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    input[type=text], textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      background: var(--parchment);
+      color: var(--ink);
+      transition: border 0.15s;
+    }
+    input[type=text]:focus, textarea:focus {
+      outline: none;
+      border-color: var(--rust);
+      background: white;
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    .form-group { margin-bottom: 18px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .flex { display: flex; gap: 12px; align-items: center; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">✦ Medieval <span>Poetess</span></a>
+  <nav>
+    <a href="/" class="{% block nav_collect %}{% endblock %}">Collecte</a>
+    <a href="/add" class="{% block nav_add %}{% endblock %}">+ Ajouter</a>
+    <a href="/export">↓ Exporter</a>
+  </nav>
+</header>
+<div class="container">
+  {% block content %}{% endblock %}
+</div>
+</body>
+</html>
