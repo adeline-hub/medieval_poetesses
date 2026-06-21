@@ -13,7 +13,9 @@ FIELDS = ["author", "original_text", "date", "source_name", "source_link", "vali
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 def get_sheet():
-    creds = Credentials.from_service_account_file("/app/medieval-poetess-16d6b37591cb.json", scopes=SCOPES)
+    import json, os
+    creds_info = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+    creds = Credentials.from_service_account_info(creds_info, scopes=SCOPES)
     gc = gspread.authorize(creds)
     sh = gc.open_by_key(SHEET_ID)
     try:
