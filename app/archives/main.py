@@ -1,40 +1,29 @@
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
-import gspread
-from google.oauth2.service_account import Credentials
+import pandas as pd
 import os
 import io
-import csv
 
 app = FastAPI()
 
-SHEET_ID = "1yrNhG8t8i4yX_97-wcp26Z6M4ArQRDu9Va-v7YY8hgg"
-FIELDS = ["author", "original_text", "date", "source_name", "source_link", "validated"]
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+CSV_PATH = "/app/output/medieval_poetess.csv"
+FIELDS = ["author", "original_text", "date", "source_name", "source_link"]
 
-def get_sheet():
-    creds = Credentials.from_service_account_file("/app/medieval-poetess-16d6b37591cb.json", scopes=SCOPES)
-    gc = gspread.authorize(creds)
-    sh = gc.open_by_key(SHEET_ID)
-    try:
-        ws = sh.worksheet("medieval_poetess")
-    except gspread.WorksheetNotFound:
-        ws = sh.add_worksheet(title="medieval_poetess", rows=1000, cols=10)
-        ws.append_row(FIELDS)
-    return ws
-
-def load_data():
-    ws = get_sheet()
-    rows = ws.get_all_records()
-    # Ensure all fields exist
-    for row in rows:
+def load_df():
+    if os.path.exists(CSV_PATH):
+        df = pd.read_csv(CSV_PATH)
         for f in FIELDS:
-            if f not in row:
-                row[f] = ""
-    return ws, rows
+            if f not in df.columns:
+                df[f] = ""
+        if "validated" not in df.columns:
+            df["validated"] = False
+    else:
+        df = pd.DataFrame(columns=FIELDS + ["validated"])
+    return df
 
-def e(v):
-    return str(v or "").replace('"', '&quot;').replace('<', '&lt;')
+def save_df(df):
+    os.makedirs(os.path.dirname(CSV_PATH), exist_ok=True)
+    df.to_csv(CSV_PATH, index=False)
 
 STYLE = """
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,7 +54,7 @@ nav a.active{color:var(--text);border-bottom:2px solid var(--green);}
 .card{background:var(--card);border:1px solid var(--border);border-radius:2px;padding:24px;margin-bottom:12px;transition:border-color .2s;}
 .card:hover{border-color:#444;}
 .progress-wrap{background:var(--border);border-radius:99px;height:3px;margin:12px 0 4px;}
-.progress-fill{height:100%;background:var(--green);border-radius:99px;}
+.progress-fill{height:100%;background:var(--green);border-radius:99px;transition:width .4s;}
 .tag-validated{display:inline-block;color:var(--green);border:1px solid var(--green);border-radius:20px;padding:2px 12px;font-size:.7rem;font-weight:500;letter-spacing:1px;text-transform:uppercase;}
 .tag-pending{display:inline-block;color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:2px 12px;font-size:.7rem;font-weight:500;letter-spacing:1px;text-transform:uppercase;}
 label{display:block;font-size:.7rem;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
@@ -104,34 +93,34 @@ def base(content: str, nav_collect="", nav_add="") -> str:
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    ws, rows = load_data()
-    total = len(rows)
-    validated = sum(1 for r in rows if str(r.get("validated", "")).lower() in ("true", "1", "yes"))
+    df = load_df()
+    total = len(df)
+    validated = int(df["validated"].sum()) if total > 0 else 0
     pct = int(validated / total * 100) if total > 0 else 0
 
-    items = ""
-    for i, row in enumerate(rows):
-        author = e(row.get("author", "(sans nom)")) or "(sans nom)"
-        date = e(row.get("date", ""))
-        source = e(row.get("source_name", "Wikipedia"))
-        is_val = str(row.get("validated", "")).lower() in ("true", "1", "yes")
+    rows = ""
+    for i, row in df.iterrows():
+        author = str(row.get("author", "") or "(sans nom)")
+        date = str(row.get("date", "") or "")
+        source = str(row.get("source_name", "") or "Wikipedia")
+        is_val = bool(row.get("validated", False))
         tag = '<span class="tag-validated">✓ Validée</span>' if is_val else '<span class="tag-pending">À valider</span>'
         meta = f"{date} · {source}" if date else source
-        items += f"""
+        rows += f"""
         <a href="/entry/{i}" style="text-decoration:none;color:inherit;">
           <div class="card" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
             <div>
-              <div style="font-size:1rem;font-weight:400;margin-bottom:2px;">{author}</div>
-              <div style="color:var(--muted);font-size:.8rem;">{meta}</div>
+              <div style="font-size:1rem;font-weight:400;margin-bottom:2px;letter-spacing:.5px;">{author}</div>
+              <div style="color:var(--muted);font-size:.8rem;letter-spacing:.5px;">{meta}</div>
             </div>
             <div>{tag}</div>
           </div>
         </a>"""
 
-    empty = "" if items else """
+    empty = "" if rows else """
     <div class="card" style="text-align:center;padding:64px;color:var(--muted);">
       <div style="font-size:2rem;margin-bottom:16px;">📜</div>
-      <div style="font-size:1rem;font-weight:300;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px;">Aucune entrée</div>
+      <div style="font-size:1rem;font-weight:300;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px;">Aucune entrée pour l'instant</div>
       <a href="/add" class="btn btn-primary">+ Ajouter une entrée</a>
     </div>"""
 
@@ -139,7 +128,7 @@ async def index():
     <div class="flex-between" style="margin-bottom:2rem;">
       <div>
         <h1 class="page-title">Collecte terrain</h1>
-        <p class="page-sub">Validez et complétez chaque entrée.</p>
+        <p class="page-sub">Validez et complétez chaque entrée scrapée depuis Wikipedia.</p>
       </div>
       <a href="/add" class="btn btn-primary">+ Ajouter</a>
     </div>
@@ -156,22 +145,27 @@ async def index():
       </div>
       <div class="progress-wrap"><div class="progress-fill" style="width:{pct}%;"></div></div>
     </div>
-    {items}{empty}"""
+    {rows}{empty}"""
 
     return HTMLResponse(base(content, nav_collect="active"))
 
 @app.get("/entry/{idx}", response_class=HTMLResponse)
 async def edit_entry(idx: int):
-    ws, rows = load_data()
-    if idx < 0 or idx >= len(rows):
+    df = load_df()
+    if idx < 0 or idx >= len(df):
         return RedirectResponse("/")
-    row = rows[idx]
-    total = len(rows)
-    is_val = str(row.get("validated", "")).lower() in ("true", "1", "yes")
+    row = df.iloc[idx]
+    total = len(df)
+
+    def val(field):
+        v = str(row.get(field, "") or "")
+        return v.replace('"', '&quot;').replace('<', '&lt;')
+
+    is_val = bool(row.get("validated", False))
     tag = '<span class="tag-validated">✓ Validée</span>' if is_val else '<span class="tag-pending">À valider</span>'
     prev_btn = f'<a href="/entry/{idx-1}" class="btn btn-secondary">← Précédente</a>' if idx > 0 else ""
     next_btn = f'<a href="/entry/{idx+1}" class="btn btn-secondary">Suivante →</a>' if idx < total-1 else ""
-    source_link = e(row.get("source_link", ""))
+    source_link = val("source_link")
     wiki = f'<div class="card" style="margin-top:20px;"><div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Source</div><a href="{source_link}" target="_blank" style="color:var(--green);font-size:.85rem;">↗ Ouvrir sur Wikipedia</a></div>' if source_link else ""
     original_text = str(row.get("original_text", "") or "").replace('<', '&lt;').replace('>', '&gt;')
 
@@ -179,19 +173,19 @@ async def edit_entry(idx: int):
     <div class="flex-between" style="margin-bottom:2rem;">
       <div>
         <a href="/" style="color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:1px;">← Retour</a>
-        <h1 class="page-title" style="margin-top:8px;">{e(row.get('author')) or '(sans nom)'}</h1>
+        <h1 class="page-title" style="margin-top:8px;">{val('author') or '(sans nom)'}</h1>
         <p class="page-sub">Entrée {idx+1} / {total}</p>
       </div>
       <div>{tag}</div>
     </div>
     <form method="post" action="/entry/{idx}/save">
       <div class="card">
-        <div class="form-group"><label>Auteure</label><input type="text" name="author" value="{e(row.get('author', ''))}"></div>
+        <div class="form-group"><label>Auteure</label><input type="text" name="author" value="{val('author')}"></div>
         <div class="grid2">
-          <div class="form-group"><label>Date</label><input type="text" name="date" value="{e(row.get('date', ''))}"></div>
-          <div class="form-group"><label>Source</label><input type="text" name="source_name" value="{e(row.get('source_name', ''))}"></div>
+          <div class="form-group"><label>Date</label><input type="text" name="date" value="{val('date')}"></div>
+          <div class="form-group"><label>Source</label><input type="text" name="source_name" value="{val('source_name')}"></div>
         </div>
-        <div class="form-group"><label>Lien source</label><input type="text" name="source_link" value="{e(row.get('source_link', ''))}"></div>
+        <div class="form-group"><label>Lien source</label><input type="text" name="source_link" value="{val('source_link')}"></div>
         <hr>
         <div class="form-group"><label>Texte original</label><textarea name="original_text">{original_text}</textarea></div>
       </div>
@@ -204,6 +198,7 @@ async def edit_entry(idx: int):
       </div>
     </form>
     {wiki}"""
+
     return HTMLResponse(base(content, nav_collect="active"))
 
 @app.post("/entry/{idx}/save")
@@ -216,13 +211,20 @@ async def save_entry(
     source_link: str = Form(""),
     do_validate: str = Form(None)
 ):
-    ws, rows = load_data()
-    row_num = idx + 2  # +1 for header, +1 for 1-based index
-    validated = "TRUE" if do_validate else str(rows[idx].get("validated", ""))
-    ws.update(f"A{row_num}:F{row_num}", [[author, original_text, date, source_name, source_link, validated]])
+    df = load_df()
+    for col in FIELDS + ["validated"]:
+        df[col] = df[col].astype(object)
+    df.at[idx, "author"] = author
+    df.at[idx, "original_text"] = original_text
+    df.at[idx, "date"] = date
+    df.at[idx, "source_name"] = source_name
+    df.at[idx, "source_link"] = source_link
     if do_validate:
-        for i in range(idx + 1, len(rows)):
-            if str(rows[i].get("validated", "")).lower() not in ("true", "1", "yes"):
+        df.at[idx, "validated"] = True
+    save_df(df)
+    if do_validate:
+        for i in range(idx + 1, len(df)):
+            if not df.iloc[i]["validated"]:
                 return RedirectResponse(f"/entry/{i}", status_code=303)
     return RedirectResponse("/", status_code=303)
 
@@ -260,18 +262,18 @@ async def add_entry(
     source_name: str = Form(""),
     source_link: str = Form("")
 ):
-    ws, _ = load_data()
-    ws.append_row([author, original_text, date, source_name, source_link, "TRUE"])
+    df = load_df()
+    new_row = {"author": author, "original_text": original_text, "date": date,
+               "source_name": source_name, "source_link": source_link, "validated": True}
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    save_df(df)
     return RedirectResponse("/", status_code=303)
 
 @app.get("/export")
 async def export_csv():
-    _, rows = load_data()
+    df = load_df()
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["author", "original_text", "date", "source_name", "source_link"])
-    writer.writeheader()
-    for row in rows:
-        writer.writerow({f: row.get(f, "") for f in ["author", "original_text", "date", "source_name", "source_link"]})
+    df[FIELDS].to_csv(output, index=False)
     output.seek(0)
     return StreamingResponse(
         io.BytesIO(output.getvalue().encode()),
